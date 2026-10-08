@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ICEM-CIIT Istmo</title>
+</head>
+<body>
+
+<style>
+  :root{
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f3f2ee;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-soft: rgba(42,120,214,0.14);
+    --d1: #2a78d6; /* residuos_agua */
+    --d2: #eb6834; /* modelos_negocio */
+    --d3: #1baf7a; /* energia_renovable */
+    --d4: #eda100; /* cumplimiento_rep */
+    --d5: #e87ba4; /* innovacion_social */
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #232320;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --accent-soft: rgba(57,135,229,0.20);
+      --d1: #3987e5;
+      --d2: #d95926;
+      --d3: #199e70;
+      --d4: #c98500;
+      --d5: #d55181;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232320;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+    --accent-soft: rgba(57,135,229,0.20);
+    --d1: #3987e5;
+    --d2: #d95926;
+    --d3: #199e70;
+    --d4: #c98500;
+    --d5: #d55181;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 16px;
+    padding-block: 20px 48px;
+  }
+  .wrap{ max-width: 1080px; margin: 0 auto; }
+
+  header{ margin-bottom: 20px; }
+  .eyebrow{
+    font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 6px;
+  }
+  h1{ font-size: clamp(22px,4vw,30px); margin: 0 0 8px; text-wrap: balance; letter-spacing: -0.01em; }
+  .sub{ color: var(--ink-2); font-size: 14px; line-height: 1.5; max-width: 62ch; margin: 0; }
+
+  .toolbar{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    margin: 18px 0 14px;
+  }
+  .search{
+    flex: 1 1 220px; min-width: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 12px; color: var(--ink); font-size: 14px;
+  }
+  .search::placeholder{ color: var(--muted); }
+  .toggle-theme{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 12px; color: var(--ink-2); font-size: 13px; cursor: pointer;
+  }
+  .toggle-theme:hover{ color: var(--ink); }
+
+  .grid{
+    display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr);
+    gap: 16px; align-items: start;
+  }
+  @media (max-width: 760px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  .panel{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px;
+  }
+  .panel h2{ font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 12px; }
+
+  /* ranking list */
+  .ranklist{ max-height: 620px; overflow-y: auto; }
+  .row{
+    display:grid; grid-template-columns: 28px 1fr auto; align-items:center; gap: 10px;
+    padding: 7px 6px; border-radius: 8px; cursor: pointer; position: relative;
+  }
+  .row:hover{ background: var(--surface-2); }
+  .row.active{ background: var(--accent-soft); }
+  .row .rank{ font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align:right; }
+  .row .name{ font-size: 13.5px; color: var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .barwrap{ position:relative; height: 18px; background: var(--grid); border-radius: 5px; overflow:hidden; grid-column: 1 / -1; margin-top:2px; }
+  .row .bar{ position:absolute; inset:0 auto 0 0; background: var(--accent); border-radius: 5px; }
+  .row .score{ position:absolute; right:6px; top:50%; transform:translateY(-50%); font-size:11px; font-variant-numeric:tabular-nums; color: var(--ink); mix-blend-mode: normal; }
+  .row.active .bar{ background: var(--d2); }
+  .row[hidden]{ display:none; }
+
+  .empty{ color: var(--muted); font-size: 13px; padding: 20px 6px; text-align:center; }
+
+  /* detail panel */
+  .detail-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom: 4px; }
+  .detail-name{ font-size: 17px; font-weight: 600; letter-spacing:-0.01em; }
+  .detail-score{ font-size: 15px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .detail-rank{ font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+  svg text{ font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .radar-label{ font-size: 10.5px; fill: var(--ink-2); }
+  .radar-grid{ fill:none; stroke: var(--grid); stroke-width:1; }
+  .radar-axis{ stroke: var(--baseline); stroke-width:1; }
+  .radar-poly{ fill: var(--accent-soft); stroke: var(--accent); stroke-width:2; }
+  .radar-dot{ fill: var(--accent); stroke: var(--surface); stroke-width:1.5; }
+
+  .dimtable{ width:100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+  .dimtable td{ padding: 6px 4px; border-top: 1px solid var(--grid); }
+  .dimtable td:first-child{ display:flex; align-items:center; gap:7px; color: var(--ink-2); }
+  .dimtable td:last-child{ text-align:right; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; }
+
+  .weights{ margin-top: 18px; }
+  .wrow{ display:grid; grid-template-columns: 118px 1fr 42px; align-items:center; gap:8px; padding: 5px 0; font-size: 12.5px; }
+  .wrow .wlabel{ display:flex; align-items:center; gap:7px; color: var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wbar-track{ height:8px; background: var(--grid); border-radius:4px; overflow:hidden; }
+  .wbar-fill{ height:100%; border-radius:4px; }
+  .wval{ text-align:right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .foot{
+    margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--muted); line-height:1.6;
+  }
+  .foot a{ color: var(--ink-2); }
+
+  .tooltip{
+    position: fixed; pointer-events:none; z-index: 20;
+    background: var(--ink); color: var(--page);
+    font-size: 11.5px; padding: 5px 8px; border-radius: 6px;
+    transform: translate(-50%,-130%); white-space: nowrap;
+    opacity: 0; transition: opacity .08s ease;
+  }
+  .tooltip.show{ opacity: 1; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Corredor Interoceánico del Istmo de Tehuantepec &middot; 46 municipios</p>
+    <h1>ICEM-CIIT &mdash; Índice de Circularidad Económica Municipal</h1>
+    <p class="sub">Ranking municipal en las 5 dimensiones de circularidad y su ponderación por Análisis de Componentes Principales. Elige un municipio en la lista para ver su perfil.</p>
+  </header>
+
+  <div class="toolbar">
+    <input class="search" id="search" name="icem-buscar-municipio-ciit" type="text" placeholder="Buscar municipio del CIIT…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" list="">
+    <button class="toggle-theme" id="themeBtn" type="button">Modo oscuro</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Ranking &middot; ICEM-CIIT (0&ndash;100)</h2>
+      <div class="ranklist" id="ranklist"></div>
+    </section>
+
+    <section class="panel">
+      <div class="detail-head">
+        <div class="detail-name" id="detName">&nbsp;</div>
+        <div class="detail-score" id="detScore">&nbsp;</div>
+      </div>
+      <div class="detail-rank" id="detRank">&nbsp;</div>
+
+      <svg id="radar" viewBox="0 0 300 260" width="100%" height="260" role="img" aria-label="Perfil de las 5 dimensiones, normalizado 0 a 1 sobre los 46 municipios"></svg>
+
+      <table class="dimtable" id="dimtable"></table>
+
+      <div class="weights">
+        <h2 style="margin-bottom:10px;">Ponderación ACP por dimensión</h2>
+        <div id="weightsList"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot">
+    Índice calculado con estandarización z-score + Análisis de Componentes Principales (1er componente), reescalado 0&ndash;100. El radar muestra cada dimensión normalizada (mín&ndash;máx) sobre los 46 municipios del corredor; la tabla debajo del radar da el z-score real de cada una. Fuente: microdatos DENUE-INEGI, INEGI (drenaje/saneamiento), CONAGUA (PTAR), Global Energy Monitor (capacidad eólica), gacetas municipales y CFE, compilados para el capítulo ICEM-CIIT.
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function(){
+  var DATA = {"municipios": [{"rank": 1, "municipio": "Salina Cruz", "score": 100.0, "z": {"residuos_agua": 2.597, "modelos_negocio": 2.109, "energia_renovable": 0.267, "cumplimiento_rep": 6.708, "innovacion_social": 1.293}}, {"rank": 2, "municipio": "Santo Domingo Tehuantepec", "score": 57.63, "z": {"residuos_agua": 3.073, "modelos_negocio": 1.311, "energia_renovable": -0.21, "cumplimiento_rep": -0.149, "innovacion_social": 1.076}}, {"rank": 3, "municipio": "El Espinal", "score": 55.51, "z": {"residuos_agua": 0.308, "modelos_negocio": 1.637, "energia_renovable": 2.34, "cumplimiento_rep": -0.149, "innovacion_social": 1.12}}, {"rank": 4, "municipio": "El Barrio de la Soledad", "score": 55.42, "z": {"residuos_agua": 1.831, "modelos_negocio": 1.625, "energia_renovable": -0.287, "cumplimiento_rep": -0.149, "innovacion_social": 1.443}}, {"rank": 5, "municipio": "Heroica Ciudad de Juchitán de Zaragoza", "score": 52.74, "z": {"residuos_agua": 0.827, "modelos_negocio": 0.284, "energia_renovable": 5.06, "cumplimiento_rep": -0.149, "innovacion_social": 0.098}}, {"rank": 6, "municipio": "Matías Romero Avendaño", "score": 47.97, "z": {"residuos_agua": -0.335, "modelos_negocio": 1.724, "energia_renovable": 2.857, "cumplimiento_rep": -0.149, "innovacion_social": 0.042}}, {"rank": 7, "municipio": "San Pedro Huamelula", "score": 42.04, "z": {"residuos_agua": 2.876, "modelos_negocio": -0.63, "energia_renovable": -0.352, "cumplimiento_rep": -0.149, "innovacion_social": 0.939}}, {"rank": 8, "municipio": "San Pedro Tapanatepec", "score": 39.25, "z": {"residuos_agua": -0.52, "modelos_negocio": 1.424, "energia_renovable": -0.338, "cumplimiento_rep": -0.149, "innovacion_social": 1.033}}, {"rank": 9, "municipio": "Santo Domingo Zanatepec", "score": 38.83, "z": {"residuos_agua": 0.613, "modelos_negocio": 0.783, "energia_renovable": -0.296, "cumplimiento_rep": -0.149, "innovacion_social": 0.711}}, {"rank": 10, "municipio": "San Francisco Ixhuatán", "score": 37.41, "z": {"residuos_agua": 0.248, "modelos_negocio": 0.447, "energia_renovable": -0.352, "cumplimiento_rep": -0.149, "innovacion_social": 1.179}}, {"rank": 11, "municipio": "Asunción Ixtaltepec", "score": 34.79, "z": {"residuos_agua": -0.834, "modelos_negocio": 0.194, "energia_renovable": 0.815, "cumplimiento_rep": -0.149, "innovacion_social": 1.222}}, {"rank": 12, "municipio": "Magdalena Tequisistlán", "score": 34.47, "z": {"residuos_agua": 0.187, "modelos_negocio": 0.144, "energia_renovable": 0.006, "cumplimiento_rep": -0.149, "innovacion_social": 0.874}}, {"rank": 13, "municipio": "Unión Hidalgo", "score": 33.69, "z": {"residuos_agua": 0.257, "modelos_negocio": 0.11, "energia_renovable": 1.176, "cumplimiento_rep": -0.149, "innovacion_social": 0.033}}, {"rank": 14, "municipio": "Santa María Jalapa del Marqués", "score": 32.94, "z": {"residuos_agua": -1.142, "modelos_negocio": 0.83, "energia_renovable": -0.002, "cumplimiento_rep": -0.149, "innovacion_social": 0.977}}, {"rank": 15, "municipio": "Ciudad Ixtepec", "score": 31.96, "z": {"residuos_agua": -1.378, "modelos_negocio": 1.312, "energia_renovable": -0.321, "cumplimiento_rep": -0.149, "innovacion_social": 0.681}}, {"rank": 16, "municipio": "Santiago Niltepec", "score": 31.8, "z": {"residuos_agua": -0.276, "modelos_negocio": 0.666, "energia_renovable": -0.357, "cumplimiento_rep": -0.149, "innovacion_social": 0.479}}, {"rank": 17, "municipio": "Santo Domingo Ingenio", "score": 30.84, "z": {"residuos_agua": -0.896, "modelos_negocio": 1.422, "energia_renovable": 0.363, "cumplimiento_rep": -0.149, "innovacion_social": -0.417}}, {"rank": 18, "municipio": "Reforma de Pineda", "score": 30.44, "z": {"residuos_agua": 0.26, "modelos_negocio": 0.754, "energia_renovable": -0.358, "cumplimiento_rep": -0.149, "innovacion_social": -0.27}}, {"rank": 19, "municipio": "Santo Domingo Chihuitán", "score": 29.3, "z": {"residuos_agua": 0.24, "modelos_negocio": 0.049, "energia_renovable": -0.36, "cumplimiento_rep": -0.149, "innovacion_social": 0.328}}, {"rank": 20, "municipio": "Santiago Laollaga", "score": 27.75, "z": {"residuos_agua": 0.228, "modelos_negocio": -0.119, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 0.274}}, {"rank": 21, "municipio": "San Dionisio del Mar", "score": 27.58, "z": {"residuos_agua": 0.231, "modelos_negocio": -0.408, "energia_renovable": -0.359, "cumplimiento_rep": -0.149, "innovacion_social": 0.556}}, {"rank": 22, "municipio": "San Francisco del Mar", "score": 27.34, "z": {"residuos_agua": 0.615, "modelos_negocio": -0.194, "energia_renovable": -0.359, "cumplimiento_rep": -0.149, "innovacion_social": -0.026}}, {"rank": 23, "municipio": "San Juan Mazatlán", "score": 27.17, "z": {"residuos_agua": 0.153, "modelos_negocio": -0.377, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 0.521}}, {"rank": 24, "municipio": "Chahuites", "score": 27.07, "z": {"residuos_agua": -1.206, "modelos_negocio": 1.102, "energia_renovable": -0.36, "cumplimiento_rep": -0.149, "innovacion_social": 0.013}}, {"rank": 25, "municipio": "Santa María Guienagati", "score": 25.04, "z": {"residuos_agua": 0.113, "modelos_negocio": -0.246, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 0.073}}, {"rank": 26, "municipio": "Santiago Lachiguiri", "score": 22.73, "z": {"residuos_agua": -0.146, "modelos_negocio": -0.379, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 0.061}}, {"rank": 27, "municipio": "Guevea de Humboldt", "score": 22.59, "z": {"residuos_agua": -0.172, "modelos_negocio": -0.479, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 0.169}}, {"rank": 28, "municipio": "Santa María Mixtequilla", "score": 22.55, "z": {"residuos_agua": -0.899, "modelos_negocio": 0.478, "energia_renovable": -0.354, "cumplimiento_rep": -0.149, "innovacion_social": -0.285}}, {"rank": 29, "municipio": "Santo Domingo Petapa", "score": 22.54, "z": {"residuos_agua": -1.29, "modelos_negocio": 0.64, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -0.14}}, {"rank": 30, "municipio": "Santiago Astata", "score": 22.5, "z": {"residuos_agua": 0.183, "modelos_negocio": -0.974, "energia_renovable": -0.355, "cumplimiento_rep": -0.149, "innovacion_social": 0.396}}, {"rank": 31, "municipio": "Santa María Totolapilla", "score": 21.44, "z": {"residuos_agua": -0.724, "modelos_negocio": -1.608, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": 1.658}}, {"rank": 32, "municipio": "Santa María Petapa", "score": 20.13, "z": {"residuos_agua": -0.646, "modelos_negocio": -0.738, "energia_renovable": -0.359, "cumplimiento_rep": -0.149, "innovacion_social": 0.442}}, {"rank": 33, "municipio": "San Pedro Comitancillo", "score": 19.84, "z": {"residuos_agua": -1.477, "modelos_negocio": 0.403, "energia_renovable": -0.357, "cumplimiento_rep": -0.149, "innovacion_social": -0.163}}, {"rank": 34, "municipio": "San Juan Cotzocón", "score": 18.28, "z": {"residuos_agua": 0.418, "modelos_negocio": -0.127, "energia_renovable": -0.332, "cumplimiento_rep": -0.149, "innovacion_social": -1.398}}, {"rank": 35, "municipio": "Santa María Chimalapa", "score": 16.23, "z": {"residuos_agua": -0.077, "modelos_negocio": -0.723, "energia_renovable": -0.359, "cumplimiento_rep": -0.149, "innovacion_social": -0.661}}, {"rank": 36, "municipio": "Santiago Yaveo", "score": 16.13, "z": {"residuos_agua": 0.075, "modelos_negocio": -0.934, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -0.57}}, {"rank": 37, "municipio": "San Miguel Chimalapa", "score": 12.38, "z": {"residuos_agua": 0.112, "modelos_negocio": -1.608, "energia_renovable": -0.36, "cumplimiento_rep": -0.149, "innovacion_social": -0.47}}, {"rank": 38, "municipio": "Magdalena Tlacotepec", "score": 11.22, "z": {"residuos_agua": -0.417, "modelos_negocio": -1.014, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -0.866}}, {"rank": 39, "municipio": "San Pedro Huilotepec", "score": 11.22, "z": {"residuos_agua": -1.181, "modelos_negocio": -0.805, "energia_renovable": -0.354, "cumplimiento_rep": -0.149, "innovacion_social": -0.473}}, {"rank": 40, "municipio": "San Miguel Tenango", "score": 10.22, "z": {"residuos_agua": 0.085, "modelos_negocio": -1.608, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -0.79}}, {"rank": 41, "municipio": "San Mateo del Mar", "score": 10.21, "z": {"residuos_agua": -0.441, "modelos_negocio": -1.334, "energia_renovable": -0.36, "cumplimiento_rep": -0.149, "innovacion_social": -0.661}}, {"rank": 42, "municipio": "San Blas Atempa", "score": 9.93, "z": {"residuos_agua": 0.45, "modelos_negocio": -0.7, "energia_renovable": -0.34, "cumplimiento_rep": -0.149, "innovacion_social": -2.129}}, {"rank": 43, "municipio": "San Juan Guichicovi", "score": 7.26, "z": {"residuos_agua": -0.312, "modelos_negocio": -0.807, "energia_renovable": -0.354, "cumplimiento_rep": -0.149, "innovacion_social": -1.809}}, {"rank": 44, "municipio": "Santiago Ixcuintepec", "score": 2.54, "z": {"residuos_agua": -1.23, "modelos_negocio": -1.044, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -1.553}}, {"rank": 45, "municipio": "Santa María Xadani", "score": 0.34, "z": {"residuos_agua": -0.388, "modelos_negocio": -0.982, "energia_renovable": -0.359, "cumplimiento_rep": -0.149, "innovacion_social": -2.658}}, {"rank": 46, "municipio": "San Lucas Camotlán", "score": 0.0, "z": {"residuos_agua": 0.004, "modelos_negocio": -1.608, "energia_renovable": -0.361, "cumplimiento_rep": -0.149, "innovacion_social": -2.353}}], "weights": {"modelos_negocio": 24.96, "innovacion_social": 23.06, "cumplimiento_rep": 19.42, "residuos_agua": 18.81, "energia_renovable": 13.75}, "dims": ["residuos_agua", "modelos_negocio", "energia_renovable", "cumplimiento_rep", "innovacion_social"]};
+
+  var DIM_LABEL = {
+    residuos_agua: "Residuos y agua",
+    modelos_negocio: "Modelos de negocio",
+    energia_renovable: "Energía renovable",
+    cumplimiento_rep: "Cumplimiento REP",
+    innovacion_social: "Innovación social"
+  };
+  var DIM_COLOR_VAR = {
+    residuos_agua: "--d1",
+    modelos_negocio: "--d2",
+    energia_renovable: "--d3",
+    cumplimiento_rep: "--d4",
+    innovacion_social: "--d5"
+  };
+
+  var root = document.documentElement;
+  function cssVar(name){ return getComputedStyle(root).getPropertyValue(name).trim(); }
+
+  // theme toggle (per-viewer convenience only)
+  var themeBtn = document.getElementById('themeBtn');
+  function currentTheme(){
+    var t = root.getAttribute('data-theme');
+    if (t) return t;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyThemeLabel(){
+    themeBtn.textContent = currentTheme() === 'dark' ? 'Modo claro' : 'Modo oscuro';
+  }
+  themeBtn.addEventListener('click', function(){
+    var next = currentTheme() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('icem_theme', next); } catch(e){}
+    applyThemeLabel();
+    renderRadar(selected);
+  });
+  try {
+    var saved = localStorage.getItem('icem_theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch(e){}
+  applyThemeLabel();
+
+  // min/max per dimension across all municipios, for radar normalization
+  var ranges = {};
+  DATA.dims.forEach(function(d){
+    var vals = DATA.municipios.map(function(m){ return m.z[d]; });
+    ranges[d] = { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals) };
+  });
+  function norm(d, v){
+    var r = ranges[d];
+    if (r.max === r.min) return 0.5;
+    return (v - r.min) / (r.max - r.min);
+  }
+
+  var maxScore = Math.max.apply(null, DATA.municipios.map(function(m){ return m.score; }));
+
+  // --- ranking list ---
+  var listEl = document.getElementById('ranklist');
+  var rowsByRank = {};
+  DATA.municipios.forEach(function(m){
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.dataset.rank = m.rank;
+    row.dataset.name = m.municipio.toLowerCase();
+    row.innerHTML =
+      '<div class="rank">' + m.rank + '</div>' +
+      '<div class="name">' + m.municipio + '</div>' +
+      '<div></div>' +
+      '<div class="barwrap"><div class="bar" style="width:' + (m.score / maxScore * 100).toFixed(1) + '%"></div>' +
+        '<div class="score">' + m.score.toFixed(1) + '</div></div>';
+    row.addEventListener('click', function(){ select(m.rank); });
+    row.addEventListener('mouseenter', function(e){ showTip(e, m.municipio + ' &middot; ' + m.score.toFixed(1)); });
+    row.addEventListener('mousemove', moveTip);
+    row.addEventListener('mouseleave', hideTip);
+    listEl.appendChild(row);
+    rowsByRank[m.rank] = row;
+  });
+
+  var tooltip = document.getElementById('tooltip');
+  function showTip(e, html){ tooltip.innerHTML = html; tooltip.classList.add('show'); moveTip(e); }
+  function moveTip(e){ tooltip.style.left = e.clientX + 'px'; tooltip.style.top = e.clientY + 'px'; }
+  function hideTip(){ tooltip.classList.remove('show'); }
+
+  // --- search filter ---
+  // Only ever matches against DATA.municipios, the 46 municipios del CIIT
+  // embedded above — no external list, browser autofill value or
+  // out-of-corredor name can ever appear here.
+  var searchEmptyEl = document.createElement('div');
+  searchEmptyEl.className = 'empty';
+  searchEmptyEl.textContent = 'Ningún municipio del CIIT coincide con la búsqueda.';
+  searchEmptyEl.hidden = true;
+  listEl.appendChild(searchEmptyEl);
+
+  document.getElementById('search').addEventListener('input', function(e){
+    var q = e.target.value.trim().toLowerCase();
+    var anyVisible = false;
+    DATA.municipios.forEach(function(m){
+      var row = rowsByRank[m.rank];
+      var match = !q || row.dataset.name.indexOf(q) !== -1;
+      row.hidden = !match;
+      if (match) anyVisible = true;
+    });
+    searchEmptyEl.hidden = anyVisible;
+  });
+
+  // --- weights ---
+  var wEl = document.getElementById('weightsList');
+  var maxW = Math.max.apply(null, Object.values(DATA.weights));
+  DATA.dims.forEach(function(d){
+    var w = DATA.weights[d];
+    var row = document.createElement('div');
+    row.className = 'wrow';
+    row.innerHTML =
+      '<div class="wlabel"><span class="swatch" style="background:var(' + DIM_COLOR_VAR[d] + ')"></span>' + DIM_LABEL[d] + '</div>' +
+      '<div class="wbar-track"><div class="wbar-fill" style="width:' + (w / maxW * 100).toFixed(1) + '%; background:var(' + DIM_COLOR_VAR[d] + ')"></div></div>' +
+      '<div class="wval">' + w.toFixed(1) + '%</div>';
+    wEl.appendChild(row);
+  });
+
+  // --- radar ---
+  var svg = document.getElementById('radar');
+  var cx = 150, cy = 120, R = 88;
+  var angleStep = (Math.PI * 2) / DATA.dims.length;
+  function pt(i, frac){
+    var a = -Math.PI/2 + i * angleStep;
+    return [cx + Math.cos(a) * R * frac, cy + Math.sin(a) * R * frac];
+  }
+  function svgEl(tag, attrs){
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function renderRadar(m){
+    svg.innerHTML = '';
+    // grid rings
+    [0.25,0.5,0.75,1].forEach(function(frac){
+      var pts = DATA.dims.map(function(_, i){ return pt(i, frac).join(','); }).join(' ');
+      svg.appendChild(svgEl('polygon', { points: pts, class: 'radar-grid' }));
+    });
+    // axes + labels
+    DATA.dims.forEach(function(d, i){
+      var p = pt(i, 1);
+      svg.appendChild(svgEl('line', { x1: cx, y1: cy, x2: p[0], y2: p[1], class: 'radar-axis' }));
+      var lp = pt(i, 1.18);
+      var label = svgEl('text', { x: lp[0], y: lp[1], class: 'radar-label', 'text-anchor': (Math.abs(lp[0]-cx) < 4 ? 'middle' : (lp[0] > cx ? 'start' : 'end')) });
+      label.textContent = DIM_LABEL[d];
+      svg.appendChild(label);
+    });
+    // polygon for selected municipio
+    var pts = DATA.dims.map(function(d, i){ return pt(i, Math.max(0.03, norm(d, m.z[d]))); });
+    svg.appendChild(svgEl('polygon', { points: pts.map(function(p){return p.join(',');}).join(' '), class: 'radar-poly' }));
+    pts.forEach(function(p){ svg.appendChild(svgEl('circle', { cx: p[0], cy: p[1], r: 3, class: 'radar-dot' })); });
+  }
+
+  // --- detail table ---
+  var dimtable = document.getElementById('dimtable');
+  function renderDetail(m){
+    document.getElementById('detName').textContent = m.municipio;
+    document.getElementById('detScore').textContent = m.score.toFixed(2) + ' / 100';
+    document.getElementById('detRank').textContent = 'Ranking ' + m.rank + ' de ' + DATA.municipios.length;
+    dimtable.innerHTML = '';
+    DATA.dims.forEach(function(d){
+      var tr = document.createElement('tr');
+      var v = m.z[d];
+      tr.innerHTML =
+        '<td><span class="swatch" style="background:var(' + DIM_COLOR_VAR[d] + ')"></span>' + DIM_LABEL[d] + '</td>' +
+        '<td>z = ' + (v >= 0 ? '+' : '') + v.toFixed(2) + '</td>';
+      dimtable.appendChild(tr);
+    });
+  }
+
+  var selected = DATA.municipios[0];
+  function select(rank){
+    var m = DATA.municipios.find(function(x){ return x.rank === rank; });
+    if (!m) return;
+    selected = m;
+    Object.values(rowsByRank).forEach(function(r){ r.classList.remove('active'); });
+    rowsByRank[rank].classList.add('active');
+    renderRadar(m);
+    renderDetail(m);
+  }
+
+  select(selected.rank);
+})();
+</script>
+
+</body>
+</html>
